@@ -84,6 +84,7 @@ function App() {
     setInputAmount(0);
     if (selectedMode === "USDC") {
       const isApproved = await checkAllowance();
+      console.log("isApproved:", isApproved)
       if (!isApproved) {
         await approvePayment();
       }
@@ -104,7 +105,7 @@ function App() {
       },
     };
     console.log("approve_request", approve_request);
-    Moralis.executeFunction(approve_request);
+    await Moralis.executeFunction(approve_request);
   };
 
   const checkAllowance = async () => {
