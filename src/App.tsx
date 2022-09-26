@@ -145,6 +145,7 @@ function App() {
       setShowModal(false);
     } catch (error) {
       console.log("Failture:", error);
+      init();
       setShowModal(false);
     }
     
