@@ -3,6 +3,7 @@ import Modal from "react-modal";
 import usdcAbi from "./abis/USDC.json";
 import depositAbi from "./abis/Deposit.json";
 import { useMoralis } from "react-moralis";
+import { CONTRACT_ADDRESS, USDC_ADDRESS, ALLOW_LIIMIT } from './config'
 import {
   Container,
   Result,
@@ -17,10 +18,6 @@ import {
   Warning,
   customStyles,
 } from "./styles";
-
-const CONTRACT_ADDRESS = "0x6e2239a29fEb49bB756593202050Ca90da1a6e9E";
-const USDC_ADDRESS = "0x59D837aC0283ed73098b886069Bd18dc5c1369E1";
-const ALLOW_LIIMIT = 99999999999;
 
 function App() {
   const { authenticate, isAuthenticated, user, logout, Moralis, account } =
@@ -179,14 +176,16 @@ function App() {
         >
           {isAuthenticated ? "DISCONNECT" : "CONNECT"}
         </Button>
-        <Button
-          onClick={() => {
-            setShowModal(true);
-            setResultLink("");
-          }}
-        >
-          DEPOSIT {hadDeposit ? "MORE" : ""}
-        </Button>
+        {isAuthenticated &&
+          <Button
+            onClick={() => {
+              setShowModal(true);
+              setResultLink("");
+            }}
+          >
+            DEPOSIT {hadDeposit ? "MORE" : ""}
+          </Button>
+        }
       </Container>
       <Modal
         style={customStyles}
