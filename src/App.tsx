@@ -142,10 +142,12 @@ function App() {
       setHadDeposit(true);
       setResultLink(message.hash);
       init();
+      setShowModal(false);
     } catch (error) {
       console.log("Failture:", error);
+      setShowModal(false);
     }
-    setShowModal(false);
+    
   };
 
   return (
@@ -168,6 +170,7 @@ function App() {
         <Button
           onClick={() => {
             if (isAuthenticated) {
+              setResultLink("")
               logout();
             } else {
               authenticate();
