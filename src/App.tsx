@@ -22,6 +22,8 @@ import {
 function App() {
   const { authenticate, isAuthenticated, user, logout, Moralis, account } =
     useMoralis();
+  
+  
   const [showModal, setShowModal] = useState(false);
   const [inputAmount, setInputAmount] = useState(0);
   const [ethBalance, setEthBalance] = useState(0);
@@ -30,6 +32,26 @@ function App() {
   const [selectedMode, setSelectedMode] = useState("ETH");
   const [resultLink, setResultLink] = useState("");
   const [hadDeposit, setHadDeposit] = useState(false);
+  const [needCheck, setNeedCheck] = useState(false)
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
+      
+      console.log("timer is running, needCheck", needCheck)
+      if(needCheck){
+        const isApproved = await checkAllowance();
+        if(isApproved){
+          console.log("isApproved:--->", isApproved)
+          deposit("USDC");
+          setNeedCheck(false)
+        }        
+      }
+      // console.log("time interval--->")
+      // setTimeLeft((t) => t - 1);
+    }, 3000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+
   const onHandleChangeAmount = (e: { target: { value: any } }) => {
     setInputAmount(Number(e.target.value));
   };
@@ -87,10 +109,11 @@ function App() {
       console.log("isApproved:", isApproved)
       if (!isApproved) {
         await approvePayment();
+        setNeedCheck(true)
       }
       deposit("USDC");
     } else {
-      deposit("ETH");
+       deposit("ETH");
     }
   };
   const approvePayment = async () => {
@@ -122,6 +145,8 @@ function App() {
     };
     console.log("allowance_request", allowance_request);
     const result = (await Moralis.executeFunction(allowance_request)) as any;
+    console.log("allowance_result-->",result)
+    console.log("Number(result._hex)--->",Number(result._hex))
     if (Number(result._hex) >= ALLOW_LIIMIT) {
       res = true;
     }
