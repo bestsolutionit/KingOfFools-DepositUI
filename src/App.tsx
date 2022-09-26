@@ -119,7 +119,7 @@ function App() {
         _owner: account,
       },
     };
-    console.log("approve_request", allowance_request);
+    console.log("allowance_request", allowance_request);
     const result = (await Moralis.executeFunction(allowance_request)) as any;
     if (Number(result._hex) >= ALLOW_LIIMIT) {
       res = true;
@@ -137,6 +137,7 @@ function App() {
       abi: depositAbi,
       params: finalParams,
     };
+    console.log("deposit request:", options)
     try {
       const message = await Moralis.executeFunction(options);
       setHadDeposit(true);
