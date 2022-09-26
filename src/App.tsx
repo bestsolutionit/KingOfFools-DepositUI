@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
 import Modal from "react-modal";
 import usdcAbi from "./abis/USDC.json";
 import depositAbi from "./abis/Deposit.json";
@@ -22,8 +23,12 @@ import {
 function App() {
   const { authenticate, isAuthenticated, user, logout, Moralis, account } =
     useMoralis();
-  
-  
+
+  const needCheck = useRef(false);
+  const accountRef = useRef(account);
+  const isApprovedWatch = useRef(false)
+  const selectedModeRef = useRef("ETH")
+  const inputAmountRef = useRef(0)
   const [showModal, setShowModal] = useState(false);
   const [inputAmount, setInputAmount] = useState(0);
   const [ethBalance, setEthBalance] = useState(0);
@@ -32,29 +37,38 @@ function App() {
   const [selectedMode, setSelectedMode] = useState("ETH");
   const [resultLink, setResultLink] = useState("");
   const [hadDeposit, setHadDeposit] = useState(false);
-  const [needCheck, setNeedCheck] = useState(false)
+  const [showLoading, setShowLoading] = useState(false)
+  const currentUser = user?.attributes;
+
+  useEffect(() => {
+    accountRef.current = account
+  }, [account])
+
   useEffect(() => {
     const intervalId = setInterval(async () => {
       
-      console.log("timer is running, needCheck", needCheck)
-      if(needCheck){
+      if (needCheck.current) {
+        setShowLoading(true)  
         const isApproved = await checkAllowance();
-        if(isApproved){
-          console.log("isApproved:--->", isApproved)
+        if (isApproved) {
           deposit("USDC");
-          setNeedCheck(false)
-        }        
+          isApprovedWatch.current = true
+          needCheck.current = false
+        }
       }
-      // console.log("time interval--->")
-      // setTimeLeft((t) => t - 1);
+      
     }, 3000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [needCheck]);
+
+
 
 
   const onHandleChangeAmount = (e: { target: { value: any } }) => {
     setInputAmount(Number(e.target.value));
+    inputAmountRef.current = Number(e.target.value)
   };
+
   useEffect(() => {
     if (selectedMode === "ETH") {
       if (inputAmount >= ethBalance) {
@@ -72,7 +86,6 @@ function App() {
     }
   }, [ethBalance, inputAmount, selectedMode, usdcBalance]);
 
-  const currentUser = user?.attributes;
   const init = async () => {
     if (currentUser) {
       setSelectedMode("ETH");
@@ -94,26 +107,30 @@ function App() {
       await Moralis.enableWeb3();
     }
   };
+
   useEffect(() => {
     init();
   }, [account, isAuthenticated]);
 
   const handleChangeCrypto = (e: any) => {
+    selectedModeRef.current = e.target.value
     setSelectedMode(e.target.value);
   };
+
   const onDeposit = async () => {
     setWarning(false);
     setInputAmount(0);
     if (selectedMode === "USDC") {
       const isApproved = await checkAllowance();
-      console.log("isApproved:", isApproved)
       if (!isApproved) {
         await approvePayment();
-        setNeedCheck(true)
+        needCheck.current = true
+      } else {
+        deposit("USDC");
       }
-      deposit("USDC");
+
     } else {
-       deposit("ETH");
+      deposit("ETH");
     }
   };
   const approvePayment = async () => {
@@ -140,13 +157,10 @@ function App() {
       abi: usdcAbi,
       params: {
         _spender: CONTRACT_ADDRESS,
-        _owner: account,
+        _owner: accountRef.current
       },
     };
-    console.log("allowance_request", allowance_request);
     const result = (await Moralis.executeFunction(allowance_request)) as any;
-    console.log("allowance_result-->",result)
-    console.log("Number(result._hex)--->",Number(result._hex))
     if (Number(result._hex) >= ALLOW_LIIMIT) {
       res = true;
     }
@@ -154,9 +168,11 @@ function App() {
   };
 
   const deposit = async (type: string) => {
+
     const finalParams = {
-      _amount: inputAmount * Math.pow(10, selectedMode === "ETH" ? 18 : 6),
+      _amount: inputAmountRef.current * Math.pow(10, selectedModeRef.current === "ETH" ? 18 : 6),
     };
+
     let options = {
       contractAddress: CONTRACT_ADDRESS,
       functionName: type === "ETH" ? "depositEth" : "depositUSDC",
@@ -166,16 +182,18 @@ function App() {
     console.log("deposit request:", options)
     try {
       const message = await Moralis.executeFunction(options);
+      setShowLoading(false)
       setHadDeposit(true);
       setResultLink(message.hash);
       init();
       setShowModal(false);
     } catch (error) {
+      setShowLoading(false)
       console.log("Failture:", error);
       init();
       setShowModal(false);
     }
-    
+
   };
 
   return (
@@ -246,7 +264,7 @@ function App() {
             {warning && <Warning>Input exceeded balance</Warning>}
           </InputLine>
           <InputLine>
-            <Button onClick={onDeposit}>DEPOSIT</Button>
+            <Button onClick={onDeposit}>{showLoading ? "Processing..." : "Deposit"}</Button>
             <Button
               onClick={() => {
                 setShowModal(false);
